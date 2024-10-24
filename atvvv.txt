@@ -1,33 +1,285 @@
+"1 - Altere a tabela de débitos para corrigir o campo situacao_debito. 
+Se o débito estiver vencido e não for ‘Negociado’ nem ‘Pago’, informe ‘Atrasado’."
+
 UPDATE DEBITOS 
 SET SITUACAO_DEBITO = 'Atrasado'
 WHERE DATAVENCIMENTO < CURRENT_DATE
 AND SITUACAO_DEBITO NOT IN ('negociado', 'pago')
+
+"2 - Altere a tabela de débitos para corrigir o campo situacao_debito. 
+Se o débito não estiver vencido e não for ‘Pago’, informe ‘Pendente’."
 
 UPDATE DEBITOS 
 SET SITUACAO_DEBITO = 'Pendente'
 WHERE DATAVENCIMENTO > CURRENT_DATE 
 AND SITUACAO_DEBITO NOT IN ('pago')
 
+"3 - Altere a tabela de débitos para corrigir o campo data de vencimento. Se o 
+débito estiver com a situação ‘Negociado’, altere o ano da data de vencimento para ano - 5 anos."
+
 UPDATE DEBITOS 
 SET SITUACAO_DEBITO = 'Negociado'
 WHERE DATAVENCIMENTO = DATEADD(YEAR, -5, DATAVENCIMENTO)
 
+"4 - Selecione o nome, e-mail e telefone de todas as pessoas."
+
 SELECT NOME, EMAIL, TELEFONE
 FROM PESSOA p
+
+"5 - Liste os produtos com preço unitário acima de R$ 100."
 
 SELECT id_produto, nome, preco_unitario
 FROM PRODUTO p
 WHERE PRECO_UNITARIO > 100
 
+"6 - Retorne todas as vendas realizadas em uma determinada data."
+
 SELECT * FROM VENDA  
 WHERE DATA_VENDA = '2021-04-02'
 
-SELECT NOME, DATADENASCIMENTO, IDADE
-FROM ID_CLIENTE
+"7 - Mostre o nome, a data de nascimento e a idade dos fornecedores que não têm produtos em estoque."
+
+SELECT p.NOME, p.DATA_NASCIMENTO, p.
+FROM PESSOA p
+JOIN FORNECEDOR f ON p.ID_PESSOA = f.ID_FORNECEDOR 
+WHERE f.ID_FORNECEDOR NOT IN (SELECT ID_FORNECEDOR FROM PRODUTO p WHERE QUANTIDADE_ESTOQUE > 0)
+
+
+"8 - Liste os clientes que já realizaram compras com débitos vencidos."
 
 SELECT ID_CLIENTE 
 FROM CLIENTE c 
 INNER JOIN VENDA v ON ID_CLIENTE = ID_CLIENTE 
-INNER JOIN debitos d ON id_venda = id_venda
+INNER JOIN DEBITOS d ON id_venda = id_venda
 WHERE DATAVENCIMENTO < CURRENT_DATE() 
 AND situacao_debito NOT IN ("pago")
+
+"10 - Selecione os 10 maiores devedores trazendo código, nome, idade e a soma total dos débitos
+ vencidos e a soma total dos débitos pagos. "
+
+SELECT FIRST 10 
+c.ID_CLIENTE
+, p.NOME
+, EXTRACT(YEAR FROM CURRENT_DATE) - EXTRACT(YEAR FROM p.DATA_NASCIMENTO) AS IDADE
+, COALESCE( (SELECT SUM(d.VALOR_TOTAL)
+FROM DEBITOS d
+WHERE d.ID_CLIENTE = c.ID_CLIENTE
+AND d.DATAVENCIMENTO < CURRENT_DATE
+AND D.SITUACAO_DEBITO IN ('Atrasado', 'Pendente')),0) AS debito_pendente
+    , (SELECT SUM(d.VALOR_TOTAL)
+FROM DEBITOS d
+WHERE d.ID_CLIENTE = c.ID_CLIENTE
+AND D.SITUACAO_DEBITO = 'Pago') AS debito_pago
+FROM PESSOA p
+INNER JOIN CLIENTE c ON C.ID_PESSOA = P.ID_PESSOA
+ORDER BY 4 DESC
+
+"11 - Atualize o preço unitário de todos os produtos com estoque inferior a 10 unidades para mais 10%."
+ 
+ 	UPDATE PRODUTO
+		SET PRECO_UNITARIO = PRECO_UNITARIO * 1.10
+	WHERE QUANTIDADE_ESTOQUE < 10	
+
+
+"12 - Modifique o status de entrega para 'Concluído' em todas as entregas realizadas antes de ‘2024-01-01’."
+
+ESSA QUESTÃO NÃO É REALIZÁVEL
+  
+"13 - Altere todos os débitos que estão com situação = 'Atrasado' para 'Pagos' se o mesmo ter o registro na
+tabela de pagamento."
+
+UPDATE DEBITOS 
+	SET SITUACAO_DEBITO = 'Pagos'
+   WHERE SITUACAO_DEBITO = 'Atrasado'	
+   
+"15 - Selecione as vendas entre o mês de dezembro de 2023 até janeiro de 2024."
+
+ SELECT ID_VENDA FROM VENDA 
+ WHERE DATA_VENDA BETWEEN '2023-12-01' AND '2023-01-31'
+   
+   
+"16 - Liste os produtos com estoque entre 5 e 20 unidades."
+SELECT ID_PRODUTO FROM PRODUTO p 
+WHERE QUANTIDADE_ESTOQUE BETWEEN 5 AND 20
+
+"17 - Retorne todas as pessoas com nomes que começam com 'A'."
+		
+SELECT NOME
+FROM PESSOA p 
+WHERE NOME like 'a%'
+
+"18 - Selecione os produtos que não foram vendidos."
+
+SELECT p.NOME
+FROM PRODUTO p
+LEFT JOIN venda v ON p.id_produto = v.ID_PRODUTO
+WHERE v.ID_PRODUTO IS NULL
+
+"19 - Liste os produtos vendidos para os clientes 'Carla Souza', 'Larissa Ferreira'."
+
+SELECT p.ID_PRODUTO 
+FROM PRODUTO p p
+JOIN VENDA v ON p.ID_PRODUTO = v.ID_PRODUTO
+JOIN CLIENTE c ON v.ID_CLIENTE = c.ID_CLIENTE
+WHERE c.NOME IN ('Carla Souza', 'Larissa Ferreira')
+
+"20 - Mostre as pessoas que são clientes OU fornecedores."
+SELECT p.ID, p.NOME
+FROM PESSOA p
+WHERE p.id IN (SELECT c.ID_PESSOA FROM CLIENTE c)
+   OR p.id IN (SELECT f.ID_PESSOA FROM FORNECEDOR f)
+   
+ "21 - Retorne todas as informações da venda com detalhes do cliente e forma de pagamento."
+   
+SELECT v.*, c.NOME AS NOME_CLIENTE, c.EMAIL AS cliente_email, p.forma_pagamento
+FROM venda v
+JOIN cliente c ON v.ID_CLIENTE = c.id
+JOIN pagamento p ON v.id = p.ID_VENDA;
+
+
+   
+"22 - Mostre todas as compras de um determinado produto 
+('Placa de Captura'), incluindo detalhes do produto."
+   
+SELECT NOME AS produto_nome, DESCRICAO, PRECO_UNITARIO, QUANTIDADE_ESTOQUE, NOME AS cliente_nome
+FROM PRODUTO p
+JOIN VENDA v ON ID_PRODUTO = ID_PRODUTO
+JOIN cliente cl ON ID_CLIENTE = ID_CLIENTE
+WHERE p.nome = 'Placa de Captura'
+
+"23 - Combine os nomes dos fornecedores com os nomes dos 
+clientes e suas respectivas idades que irão fazer no ano de 2025."
+
+SELECT NOME, 
+      (2025 - EXTRACT(YEAR FROM p.data_nascimento)) AS IDADE2025, 
+       'Fornecedor' AS tipo_pessoa
+FROM FORNECEDOR f
+JOIN PESSOA p ON PESSOA
+
+UNION ALL
+
+SELECT NOME, 
+       (2025 - EXTRACT(YEAR FROM data_nascimento)) AS IDADE2025, 
+       'Cliente' AS tipo_pessoa
+FROM CLIENTE C
+JOIN pessoa p ON PESSOA 
+
+
+"24 - Retorne todos os logradouros e bairros, indicando se pertencem ou não a uma pessoa."
+
+SELECT e.LOGRADOURO, e.BAIRRO 
+ 		IF (pe.ID_ENDERECO IS NULL, 'Não pertence a uma pessoa', 'Pertence a uma pessoa') AS pertence_a_pessoa
+FROM endereco e
+LEFT JOIN pessoas_endereco pe ON e.id = pe.ID_ENDERECO
+
+"25 - Selecione os produtos que têm preço unitário superior à média."
+SELECT NOME, PRECO_UNITARIO
+FROM PRODUTO
+WHERE PRECO_UNITARIO > (SELECT AVG(PRECO_UNITARIO) FROM PRODUTO)
+
+"26 - Liste os clientes que fizeram compras em cidades com mais de 1 milhão de habitantes."
+SELECT p.NOME AS NOME_PESSOA
+         , c.*
+         , m.Nome AS NOME_MUNICIPIO
+         , m.POPULACAO AS QTD_PESSOAS
+      FROM VENDA v
+INNER JOIN CLIENTE c   ON c.ID_PESSOA    = v.ID_PESSOA
+INNER JOIN PESSOA p    ON p.ID_PESSOA    = c.ID_PESSOA
+INNER JOIN ENDERECO e  ON e.ID_PESSOA    = p.ID_PESSOA
+INNER JOIN MUNICIPIO m ON m.ID_MUNICIPIO = e.ID_MUNICIPIO
+     WHERE m.POPULACAO > 1000000
+
+"27 - Mostre a quantidade total de produtos vendidos por fornecedor."
+     
+SELECT f.nome AS fornecedor_nome, 
+       SUM(v.quantidade) AS total_vendidos
+FROM fornecedores f
+LEFT JOIN produtos p ON f.id = p.fornecedor_id
+LEFT JOIN vendas v ON p.id = v.produto_id
+GROUP BY f.nome;
+
+
+
+﻿﻿﻿﻿"28 - Liste os clientes que realizaram compras com valor total superior a R$ 500."
+SELECT NOME
+FROM cliente c
+JOIN VENDAS V ON c.id = V.ID_CLIENTE
+WHERE V.valor_total > 500
+GROUP BY NOME
+
+
+﻿﻿﻿﻿"29 - Retorne todas as pessoas com seus endereços de correspondência e residência, se tiverem."
+SELECT p.NOME AS NOME_PESSOA,
+       e1.LOGRADOURO AS ENDERECO_CORRESPONDENCIA,
+       e2.LOGRADOURO AS ENDERECO_RESIDENCIAL
+FROM PESSOA p
+LEFT JOIN ENDERECO e1 ON p.ID_PESSOA = e1.ID_PESSOA AND e1.TIPO = 'correspondência'
+LEFT JOIN ENDERECO e2 ON p.ID_PESSOA = e2.ID_PESSOA AND e2.TIPO = 'residencial'
+
+﻿﻿﻿﻿"30 - Liste os produtos e seus preços, juntamente com o nome do fornecedor, mesmo que não tenham fornecedor."
+SELECT NOME, 
+       PRECO, 
+       NOME
+FROM PRODUTO p
+LEFT JOIN FORNECEDOR f ON p.ID_FORNECEDOR = f.ID_FORNECEDOR
+
+
+﻿﻿﻿﻿"31 - Liste os produtos em ordem decrescente de quantidade em estoque."
+SELECT p.NOME AS NOME_PRODUTO, 
+       p.QUANTIDADE_ESTOQUE AS ESTOQUE
+FROM PRODUTO p
+ORDER BY p.QUANTIDADE_ESTOQUE DESC
+
+
+﻿﻿﻿﻿"32 - Retorne as vendas em ordem crescente de valor total."
+SELECT v.ID_VENDA, 
+       v.VALOR_TOTAL
+FROM VENDA v
+ORDER BY v.VALOR_TOTAL ASC
+
+﻿﻿﻿﻿"33 - Liste os produtos com quantidade em estoque menor que a média de todos os produtos."
+
+SELECT *
+FROM PRODUTO p
+WHERE p.QUANTIDADE_ESTOQUE > (SELECT AVG(p.QUANTIDADE_ESTOQUE) FROM PRODUTO p)
+
+﻿﻿﻿﻿"34 - Selecione todas as pessoas cujo número de telefone seja igual ao de outra pessoa."
+SELECT p.NOME, p.TELEFONE
+FROM PESSOA p
+WHERE p.TELEFONE IN (
+    SELECT TELEFONE
+    FROM PESSOA
+    GROUP BY TELEFONE
+    HAVING COUNT(*) > 1
+)
+
+
+﻿﻿﻿﻿"35 - Aumente em 10% o preço unitário de todos os produtos fornecidos por fornecedores de São Paulo."
+UPDATE PRODUTO p
+SET p.PRECO_UNITARIO = p.PRECO_UNITARIO * 1.10
+WHERE p.ID_FORNECEDOR IN (
+SELECT f.ID_FORNECEDOR
+FROM FORNECEDOR f
+INNER JOIN PESSOA ps ON f.ID_PESSOA = ps.ID_PESSOA
+INNER JOIN ENDERECO e ON ps.ID_PESSOA = e.ID_PESSOA
+INNER JOIN MUNICIPIO m ON e.ID_MUNICIPIO = m.ID_MUNICIPIO
+WHERE m.NOME = 'São Paulo'
+)
+
+﻿﻿﻿﻿"36 - Lista todas as vendas que estão com débito 'Negociado'."
+   SELECT d.ID_VENDA
+         , d.SITUACAO_DEBITO
+      FROM DEBITOS d
+INNER JOIN VENDA v ON v.ID_VENDA = d.ID_VENDA
+     WHERE d.SITUACAO_DEBITO = 'Negociado'
+
+
+
+
+		
+		
+		
+		
+		
+		
+		
